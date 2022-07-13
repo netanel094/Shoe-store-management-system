@@ -2,7 +2,7 @@
 # Shoes store management system 
     using Python and MySQL
 
-this project was made during of the ‘Data Bases’ course as a part of computer science bachelor studies.
+This project was made during of the ‘Data Bases’ course as a part of computer science bachelor studies.
 The idea behind this project was to make a system that will optimize the management in a specific shoes store.
 
 
