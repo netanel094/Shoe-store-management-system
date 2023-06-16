@@ -1,42 +1,54 @@
-import mysql.connector
+from asyncio.windows_events import NULL
+import mysql.connector as cn
 from tkinter import *
 import PySimpleGUI as sg
 
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="1234",
-    database="shoesstore",
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
+mydb = cn.connect(
+    host= os.getenv("HOST"),
+    user=os.getenv("USER"),
+    password =os.getenv("PASSWORD"),
+    database =os.getenv("DATABASE"),
 )
 
-mycursor = mydb.cursor()
 
+
+if mydb.is_connected():
+    print("Connected to MySQL!")
+    # Perform further operations on the database
+    mycursor = mydb.cursor()
+
+
+else:
+    print("Failed to connect to MySQL.")
+    
 
 ## SEARCH
-def search_sql(model, size=None, color=None):
+def search_sql(model, size=[], color=[]):
     # if the user did not input the size and color, we return all data for this model
-    #if color is []:
-     #   color = []
-    #if size is []:
-     #   size = []
     if size == [] and color == []:
-        mycursor.execute("SELECT * FROM inventory where NumModel = %s", (model,))
+        mycursor.execute("SELECT * FROM instock where NumModel = %s", (model,))
 
     # if the user did not input size (but did input color)
     elif size == []:
         color_ = color[0]
-        mycursor.execute("SELECT * FROM inventory where NumModel = %s and color = %s", (model, color_))
+        mycursor.execute("SELECT * FROM instock where NumModel = %s and color = %s", (model, color_))
 
     # if the user did not input color (but did input size)
     elif color == []:
         size_ = size[0]
-        mycursor.execute("SELECT * FROM inventory where NumModel = %s and Size = %s", (model, size_))
+        mycursor.execute("SELECT * FROM instock where NumModel = %s and Size = %s", (model, size_))
 
     else:
         size_ = size[0]
         color_ = color[0]
 
-        mycursor.execute("SELECT * FROM inventory WHERE NumModel = %s AND size = %s AND color = %s",
+        mycursor.execute("SELECT * FROM instock WHERE NumModel = %s AND size = %s AND color = %s",
                          (model, size_, color_))
 
     # showing the table data
@@ -55,8 +67,77 @@ def search_sql(model, size=None, color=None):
             break
     window.close()
 
+def Search_Window():
+    layout_Search = [
+        [sg.Text("?איזה זוג נעליים תרצה למצוא", size=(25, 2), font=('Arial', 15))],
+        [sg.Input(size=(10, 4)), sg.Text(':מספר דגם*', font=('Arial', 12))],
+        [sg.Listbox([36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5, 41, 41.5,
+                     42, 42.5, 43, 43.5, 44, 44.5, 45, 45.5, 46, 46.5, 47, 47.5, 48],
+                    size=(7, 7)), sg.Text(':מידה', font=('Arial', 12))],
+        [sg.Listbox(["אדום", "שחור", "לבן", "ירוק", "אפור", "חום", "כחול", "צבעוני"],
+                    size=(10, 4)), sg.Text(':צבע', font=('Arial', 12))],
+        [sg.Button(button_text="אישור", size=(6, 2), pad=(10, 20), button_color="green"),
+         sg.Button(button_text="ביטול", size=(6, 2), pad=(10, 20), button_color="red")]
+    ]
 
-## ADD
+    SearchWindow = sg.Window("חיפוש", layout_Search, element_justification='center', margins=(100, 50))
+
+    while True:
+        event_Search, values_Search = SearchWindow.read()
+        if event_Search in (sg.WIN_CLOSED, 'ביטול'):
+            break
+        # if the user did not input any model
+        elif values_Search[0] == "":
+            layout_error = [
+                [sg.Text("שגיאה! חובה להזין מספר דגם", size=(20, 2), text_color="black", font=('Arial', 14))],
+                [sg.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="grey")]]
+            ErrorWindow = sg.Window("!שגיאה", layout_error, element_justification='center', margins=(50, 25))
+            while True:
+                event_error, values_error = ErrorWindow.read()
+                if event_error in (sg.WIN_CLOSED, "אישור"):
+                    break
+            ErrorWindow.close()
+        elif event_Search == "אישור":
+            search_sql(values_Search[0], values_Search[1], values_Search[2])
+    SearchWindow.close()
+
+def Add_Window():
+    layout_Add = [
+        [sg.Text("?איזה זוג נעליים תרצה להוסיף למלאי", size=(30, 2), font=('Arial', 15))],
+        [sg.Input(size=(10, 4), key="MODEL"), sg.Text(':מספר דגם*', font=('Arial', 12))],
+        [sg.Listbox(["אדום", "שחור", "לבן", "ירוק", "אפור", "חום", "כחול", "צבעוני"],
+                    size=(10, 4), key="COLOR"), sg.Text(':צבע*', font=('Arial', 12))],
+        [sg.Listbox([1, 2], size=(10, 4), key="FLOOR"), sg.Text(':קומה*', font=('Arial', 12))],
+        [sg.Listbox(["חורף", "קיץ", "סתיו", "אביב"],
+                    size=(10, 4), key="SEASON"), sg.Text(':עונה', font=('Arial', 12))],
+        [sg.Button(button_text="אישור", size=(6, 2), pad=(10, 20), button_color="green"),
+         sg.Button(button_text="ביטול", size=(6, 2), pad=(10, 20), button_color="red")]
+    ]
+
+    AddWindow = sg.Window("הוספה", layout_Add, element_justification='center', margins=(100, 40))
+
+    while True:
+        event_Add, values_Add = AddWindow.read()
+        if event_Add in (sg.WIN_CLOSED, 'ביטול'):
+            break
+
+        # if the user did not input model/size/floor -- ERROR WINDOW
+        elif values_Add['MODEL'] == "" or values_Add['COLOR'] == [] or values_Add['FLOOR'] == []:
+            layout_Error = [[sg.Text("שגיאה! פרטים חסרים", size=(20, 2), text_color="black", font=('Arial', 15))],
+                            [sg.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="grey")]]
+            ErrorWindow = sg.Window("!שגיאה", layout_Error, element_justification='center', margins=(50, 25))
+            while True:
+                event_Error, values_Error = ErrorWindow.read()
+                if event_Error in (sg.WIN_CLOSED, "אישור"):
+                    break
+            ErrorWindow.close()
+        elif event_Add == "אישור":
+            if values_Add['SEASON'] == []:
+                values_Add['SEASON'].append(NULL)
+            cn.Add_sql(values_Add['MODEL'], values_Add['COLOR'][0], values_Add['FLOOR'][0], values_Add['SEASON'][0])
+    AddWindow.close()
+
+# add to mysql
 def Add_sql(model, color, floor, season):
     sizesint = [
         [sg.Spin([i for i in range(0, 11)], initial_value=0, size=(2, 10), key=36), sg.Text('36')],
@@ -109,16 +190,16 @@ def Add_sql(model, color, floor, season):
             up = 0
             for i in range(all_sizes):
                 if values_add_sizes[up + 36] != 0:
-                    inserting_to_inventory = "INSERT INTO inventory (NumModel, Size, Color, Amount, Floor, Season)" \
-                                             " VALUES (%s, %s, %s, %s, %s, %s)"
+                    inserting_to_stock = "INSERT INTO instock (NumModel, Size, color, amount, Floor, Season)" \
+                                         " VALUES (%s, %s, %s, %s, %s, %s)"
                     val = (model, up + 36, color, values_add_sizes[up + 36], floor, season)
-                    mycursor.execute(inserting_to_inventory, val)
+                    mycursor.execute(inserting_to_stock, val)
 
                     mydb.commit()
                 up += 0.5
 
             layout_confirmation = [  # Confirmation window after inserting
-                [sg.Text("הפריטים הוספו לבקשתך", size=(20, 2), text_color="black", font=('Tahoma', 15))],
+                [sg.Text("הפריטים הוספו לבקשתך", size=(20, 2), text_color="black", font=('Arial', 15))],
                 [sg.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="blue")]]
             confirmation_window = sg.Window("הפריטים הוספו", layout_confirmation, element_justification='center',
                                             margins=(50, 25))
@@ -135,37 +216,3 @@ def Add_sql(model, color, floor, season):
 
         Add_Sizes_Window.close()
     Add_Sizes_Window.close()
-
-
-# Adding the costumer to "Buyer" table and deleting the shoes he bought from "inventory" table
-def Buyer_sql(model, size, color, firstname=None, lastname=None, phone=None):
-    # inserting the costumer
-    inserting_to_Buyer = "INSERT INTO buyer (FirstName, LastName, PhoneNumber) VALUES (%s, %s, %s)"
-    val = (firstname, lastname, phone)
-    mycursor.execute(inserting_to_Buyer, val)
-
-    mydb.commit()
-
-    layout_confirmation = [  # Confirmation window after inserting
-        [sg.Text("בוצע", size=(20, 2), text_color="black", font=('Tahoma', 15))],
-        [sg.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="blue")]]
-    confirmation_window = sg.Window("הפריטים הוספו", layout_confirmation, element_justification='center',
-                                    margins=(50, 25))
-    while True:
-        confirm_event, confirm_values = confirmation_window.read()
-        if confirm_event in (sg.WIN_CLOSED, "אישור"):
-            break
-    confirmation_window.close()
-
-    # updating the shoe from inventory
-    purchased_shoe = "SELECT Amount FROM inventory WHERE NumModel = %s and size = %s and color = %s"
-    shoe_val = (model, size, color)
-    mycursor.execute(purchased_shoe, shoe_val)  # Getting the Amount value
-    Amount = mycursor.fetchall()
-    update_inventory_sql = "UPDATE inventory SET Amount = %s WHERE Amount in " \
-                           "(SELECT * FROM (SELECT Amount FROM inventory WHERE " \
-                           "NumModel = %s and Size = %s and Color = %s) as Amount) "
-    update_val = (Amount[0][0] - 1, model, size, color)
-    mycursor.execute(update_inventory_sql, update_val)
-
-    mydb.commit()
