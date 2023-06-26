@@ -1,7 +1,6 @@
+import functions as f
 from asyncio.windows_events import NULL
-
 import PySimpleGUI as sg
-import sql as cn
 
 
 layout = [[sg.Button("חיפוש", size=(12, 3)), sg.Button("רכישה", size=(12, 3))],
@@ -18,8 +17,13 @@ while True:
     if event == sg.WIN_CLOSED:
         break
     elif event == "חיפוש":
-        cn.Search_Window()
+        f.Search_Window()
     elif event == "הוספה":
-        cn.Add_Window()
+        f.Add_Window()
+    elif event  == "קופה יומית":
+        f.DailyCheckOutWindow()
+    elif event  == "רכישה":
+        f.purches_window()
+
 
 window.close()
