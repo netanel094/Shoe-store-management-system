@@ -61,11 +61,9 @@ table_queries = [
         order_id INT AUTO_INCREMENT PRIMARY KEY,
         phone VARCHAR(20),
         numModel INT,
+        color VARCHAR(20),
         order_date DATE,
-        quantity INT,
-        price DECIMAL(10, 2),
-        FOREIGN KEY (phone) REFERENCES Customers(phone),
-        FOREIGN KEY (numModel) REFERENCES Shoes(numModel)
+        price DECIMAL(10, 2)
     )
     '''
 ]

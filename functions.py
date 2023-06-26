@@ -1,4 +1,7 @@
 from asyncio.windows_events import NULL
+import os
+import re
+from dotenv import load_dotenv
 import mysql.connector as cn
 from tkinter import *
 import PySimpleGUI as sg
@@ -194,6 +197,7 @@ def Add_sql(model, color, floor, season):
                             update_values = (newQuantity, model, color, size,season)
                             mycursor.execute(updateQuery, update_values)
                             mydb.commit()
+                            mydb.close()
 
                     up += 0.5
 
@@ -259,8 +263,6 @@ def purches_window():
     [sg.Input(size=(10, 4), key="MODEL"), sg.Text(':מספר דגם*', font=('Arial', 12))],
     [sg.Listbox(["אדום", "שחור", "לבן", "ירוק", "אפור", "חום", "כחול", "צבעוני"],
                 size=(10, 4), key="COLOR"), sg.Text(':צבע*', font=('Arial', 12))],
-    [sg.Listbox(["חורף", "קיץ", "סתיו", "אביב"],
-                size=(10, 4), key="SEASON"), sg.Text(':עונה', font=('Arial', 12))],
     [sg.Input(size=(10, 4), key="PHONE"), sg.Text(':פלאפון*', font=('Arial', 12))],
     [sg.Button(button_text="אישור", size=(6, 2), pad=(10, 20), button_color="green", key="אישור")],
     [sg.Button(button_text="ביטול", size=(6, 2), pad=(10, 20), button_color="red", key="ביטול")]
@@ -275,38 +277,39 @@ def purches_window():
             window.close()
             break
         
-        while event == "אישור":
+        if event == "אישור":
             if not all(values.values()):
                 sg.popup("יש למלא את כל השדות", title="שדות חסרים")
                 break
             
             else:
-                layout_confirmation = [  
-                [sg.Text("הרכישה נקלטה", size=(20, 2), text_color="black", font=('Arial', 15))],
-                [sg.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="blue")]]
+                price_input = values['PRICE']
+                model = values['MODEL']
 
-            model = values()
-
-            # TODO: build the function
-
-            try:
-                addPurchaseSQL(values['PRICE'], values["MODEL"], values['COLOR'][0], values['SEASON'][0])
+                if not re.match(r'^\d+(\.\d{1,2})?$', price_input) or not re.match(r'^\d+(\.\d{1,2})?$',model):
+                    sg.popup('פרטים לא תקינים', title='Error')
+                    continue
                 
-                m = sg.Window("הפריטים הוספו", layout_confirmation, element_justification='center', margins=(50, 25))
-                
-                while True:
-                    event, values = m.read()
-                    if event in (sg.WIN_CLOSED, "אישור"):
-                        m.close()
-                        window.close()
-                        break
-                    
-            except Exception as e:
-                # Handle the exception
-                print(f"An error occurred: {str(e)}")
+                phone_input = values['PHONE']
+                pattern = r'^\d{10}$'  # Regex pattern for phone number in the format: xxx-xxx-xxxx
+                if not re.match(pattern, phone_input):
+                    sg.Popup("הכנס מספר פלאפון תקין", keep_on_top=True)
+                    continue
+    
+                print("before addPurchaseSQL")
+                addPurchaseSQL(phone_input, model, values['COLOR'][0], values['PRICE'])
+
+
+def addPurchaseSQL(phone, model, color,price):
+    
+    currentDate = datetime.datetime.now().strftime('%Y-%m-%d')
+    try:
+        query = "INSERT INTO Orders (phone, numModel, color, order_date, price) VALUES (%s, %s, %s, %s, %s)"
+        values = (phone, model,color, currentDate, price)
+        mycursor.execute(query, values)
+        mydb.commit()
 
 
 
-def addPurchaseSQL(price, model, color, season):
-
-    query = "INSERT INTO orders (price, model, color, season"
+    except cn.Error as e:
+                print(f'Error update order table: {e}')
