@@ -225,38 +225,8 @@ def Add_sql(model, color, floor, season):
         Add_Sizes_Window.close()
     Add_Sizes_Window.close()
 
-def DailyCheckOutWindow():
-    layout_Search = [
-        [sg.Text(":סכום כסף בקופה", size=(20, 2), font=('Arial', 20), justification='center')],
-        [sg.Text("", size=(20, 2), font=('Arial', 20), justification='center')],
-        [sg.Button(button_text="יציאה", size=(6, 2), pad=(10, 20), button_color="red")]]
-      
 
-    current_date = datetime.date.today()
-
-    # Format the date as a string in the format 'YYYY-MM-DD'
-    formatted_date = current_date.strftime('%Y-%m-%d')
-
-    # SQL query to calculate the sum of orders for the current day
-    query = "SELECT SUM(order_total) FROM orders WHERE order_date = %s"
-    mycursor.execute(query, formatted_date)
-
-    # Fetch the result
-    result = mycursor.fetchone()
-    # Access the sum of orders
-    sum_of_orders = result[0]
-
-    print("Sum of orders for the current day:", sum_of_orders)
-
-    window = sg.Window("חיפוש", layout_Search, element_justification='center', margins=(100, 50))
-    while True:
-        event, values = window.read()
-        if event in (sg.WIN_CLOSED, 'יציאה'):
-            window.close()
-            break
-
-
-def purches_window():
+def purchase_window():
 
     layout = [
     [sg.Input(size=(10, 4), key="PRICE"), sg.Text(':מחיר*', font=('Arial', 12))],
@@ -275,10 +245,10 @@ def purches_window():
     sg.Button(button_text="ביטול", size=(6, 2), pad=(20, 20), button_color="red")]
 ]
 
-    purchesW = sg.Window("רכישה", layout, element_justification='center', margins=(60, 60))
+    purchaseW = sg.Window("רכישה", layout, element_justification='center', margins=(60, 60))
  
     while True:
-        event, values = purchesW.read()
+        event, values = purchaseW.read()
         price = values['PRICE']
         model = values['MODEL']
         name = values['NAME']
@@ -289,7 +259,7 @@ def purches_window():
         season = values['SEASON'][0]
 
         if event in (sg.WIN_CLOSED, 'ביטול'):
-            purchesW.close()
+            purchaseW.close()
             break
         
         # Check if the size is correct
@@ -316,9 +286,9 @@ def purches_window():
     
                 
                 addPurchaseSQL(model, price, size,floor, name, phone, color)
-                updateShoesTableAfterPurch(model, color, size, floor, season)
+                updateShoesTableAfterPurchase(model, color, size, floor, season)
                 sg.popup("רכישה בוצעה בהצלחה", title="Success")
-                purchesW.close()
+                purchaseW.close()
                 break
 
 
@@ -338,7 +308,7 @@ def addPurchaseSQL(model, price, size,floor, name, phone, color):
         print(f'Error update order table: {e}')
 
 
-def updateShoesTableAfterPurch(model, color , size, floor, season):
+def updateShoesTableAfterPurchase(model, color , size, floor, season):
     
     try:
         quantityInStockQUERY = "SELECT quantity FROM shoes WHERE numModel = %s AND color = %s AND size = %s AND season = %s AND floor = %s" 
@@ -353,5 +323,51 @@ def updateShoesTableAfterPurch(model, color , size, floor, season):
 
     except cn.Error as e:
         print(f'Error update order table: {e}')
+
+
+def DailyCheckOutWindow():
+    layout = [
+        [sg.Button(button_text="קופה יומית", size=(6, 2), pad=(20, 20), button_color="blue"),
+        sg.Button(button_text="קופה חודשית", size=(6, 2), pad=(20, 20), button_color="orange"),],
+        [sg.Button(button_text="יציאה", size=(6, 2), pad=(10, 20), button_color="red")]]
+      
+    window = sg.Window("חיפוש", layout, element_justification='center', margins=(100, 50))
+        
+    # SQL query to calculate the sum of orders for the current day
+    dailyProfit  = "SELECT SUM(order_total) FROM orders WHERE order_date = %s"
+    monthlyProfit = "SELECT SUM(price) AS profit FROM Orders WHERE MONTH(order_date) =  AND YEAR(order_date) = YEAR(CURRENT_DATE())"
+    
+    currentDate = datetime.datetime.now().strftime('%Y-%m-%d')
+    
+    # SQL query to calculate the sum of orders for the current day
+    dailyProfitQuery = "SELECT SUM(price) FROM Orders WHERE order_date = %s"
+    
+    # SQL query to calculate the sum of orders for the current month
+    monthlyProfitQuery = "SELECT SUM(price) AS profit FROM Orders WHERE MONTH(order_date) = MONTH(CURRENT_DATE()) AND YEAR(order_date) = YEAR(CURRENT_DATE())"
+    
+    while True:
+        event, values = window.read()
+
+        if event == sg.WINDOW_CLOSED or event == 'יציאה':
+            window.close()
+            break
+        
+        if event == 'קופה יומית':
+            # Execute the daily profit query
+            mycursor.execute(dailyProfitQuery, (currentDate,))
+            result = mycursor.fetchone()
+            dailyProfit = result[0]
+            sg.Popup(f"הסכום שהצטבר במהלך היום הנוכחי הוא {dailyProfit}", font = ('Arial', 16), keep_on_top=True,)
+            print("Daily profit:", dailyProfit)
+
+        if event == 'קופה חודשית':
+            # Execute the monthly profit query
+            mycursor.execute(monthlyProfitQuery)
+            result = mycursor.fetchone()
+            monthlyProfit = result[0]
+            sg.Popup(f"הסכום שהצטבר במהלך החודש הנוכחי הוא {monthlyProfit}",font = ('Arial', 16), keep_on_top=True)
+
+            
+            print("Monthly profit:", monthlyProfit)
 
 

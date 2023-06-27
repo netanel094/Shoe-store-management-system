@@ -23,7 +23,7 @@ while True:
     elif event  == "קופה יומית":
         f.DailyCheckOutWindow()
     elif event  == "רכישה":
-        f.purches_window()
-
+        f.purchase_window()
+   
 
 window.close()
