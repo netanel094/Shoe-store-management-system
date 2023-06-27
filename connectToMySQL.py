@@ -59,11 +59,14 @@ table_queries = [
     '''
     CREATE TABLE IF NOT EXISTS Orders (
         order_id INT AUTO_INCREMENT PRIMARY KEY,
-        phone VARCHAR(20),
         numModel INT,
+        price DECIMAL(10, 2),
+        size INT,
+        floor INT,
+        name VARCHAR(20),
+        phone VARCHAR(20),
         color VARCHAR(20),
-        order_date DATE,
-        price DECIMAL(10, 2)
+        order_date DATE
     )
     '''
 ]

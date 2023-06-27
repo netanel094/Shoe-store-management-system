@@ -262,54 +262,96 @@ def purches_window():
     [sg.Input(size=(10, 4), key="PRICE"), sg.Text(':מחיר*', font=('Arial', 12))],
     [sg.Input(size=(10, 4), key="MODEL"), sg.Text(':מספר דגם*', font=('Arial', 12))],
     [sg.Listbox(["אדום", "שחור", "לבן", "ירוק", "אפור", "חום", "כחול", "צבעוני"],
-                size=(10, 4), key="COLOR"), sg.Text(':צבע*', font=('Arial', 12))],
+                size=(6, 4), key="COLOR"), sg.Text(':צבע*', font=('Arial', 12))],
+    [sg.Listbox(["1","2"],
+    size=(3, 2), key="FLOOR"), sg.Text(':קומה*', font=('Arial', 12))],
+    [sg.Listbox(["חורף", "קיץ", "סתיו", "אביב"],
+                size=(10, 4), key="SEASON"), sg.Text(':עונה', font=('Arial', 12))],
+    [sg.Input(size=(10, 4), key="SIZE"), sg.Text(':מידה*', font=('Arial', 12))],
     [sg.Input(size=(10, 4), key="PHONE"), sg.Text(':פלאפון*', font=('Arial', 12))],
-    [sg.Button(button_text="אישור", size=(6, 2), pad=(10, 20), button_color="green", key="אישור")],
-    [sg.Button(button_text="ביטול", size=(6, 2), pad=(10, 20), button_color="red", key="ביטול")]
+    [sg.Input(size=(10, 4), key="NAME"), sg.Text(':שם לקוח*', font=('Arial', 12))],
+
+    [sg.Button(button_text="אישור", size=(6, 2), pad=(20, 20), button_color="green"),
+    sg.Button(button_text="ביטול", size=(6, 2), pad=(20, 20), button_color="red")]
 ]
 
-    window = sg.Window("רכישה", layout, element_justification='center', margins=(100, 80))
-
-
+    purchesW = sg.Window("רכישה", layout, element_justification='center', margins=(60, 60))
+ 
     while True:
-        event, values = window.read()
+        event, values = purchesW.read()
+        price = values['PRICE']
+        model = values['MODEL']
+        name = values['NAME']
+        size = values['SIZE']
+        color = values['COLOR'][0]
+        phone = values['PHONE']
+        floor =values['FLOOR'][0]
+        season = values['SEASON'][0]
+
         if event in (sg.WIN_CLOSED, 'ביטול'):
-            window.close()
+            purchesW.close()
             break
+        
+        # Check if the size is correct
+        if not size.isdigit() or not 36 <= int(size) <= 47:
+            sg.Popup("יש להזין ערך מידה תקין (36-47)", keep_on_top=True)
+            continue
         
         if event == "אישור":
             if not all(values.values()):
                 sg.popup("יש למלא את כל השדות", title="שדות חסרים")
-                break
+                continue
             
             else:
-                price_input = values['PRICE']
-                model = values['MODEL']
-
-                if not re.match(r'^\d+(\.\d{1,2})?$', price_input) or not re.match(r'^\d+(\.\d{1,2})?$',model):
+               
+                if not re.match(r'^\d+(\.\d{1,2})?$', price) or not re.match(r'^\d+(\.\d{1,2})?$',model):
                     sg.popup('פרטים לא תקינים', title='Error')
                     continue
                 
-                phone_input = values['PHONE']
+           
                 pattern = r'^\d{10}$'  # Regex pattern for phone number in the format: xxx-xxx-xxxx
-                if not re.match(pattern, phone_input):
+                if not re.match(pattern, phone):
                     sg.Popup("הכנס מספר פלאפון תקין", keep_on_top=True)
                     continue
     
-                print("before addPurchaseSQL")
-                addPurchaseSQL(phone_input, model, values['COLOR'][0], values['PRICE'])
+                
+                addPurchaseSQL(model, price, size,floor, name, phone, color)
+                updateShoesTableAfterPurch(model, color, size, floor, season)
+                sg.popup("רכישה בוצעה בהצלחה", title="Success")
+                purchesW.close()
+                break
 
 
-def addPurchaseSQL(phone, model, color,price):
+
+
+
+def addPurchaseSQL(model, price, size,floor, name, phone, color):
     
     currentDate = datetime.datetime.now().strftime('%Y-%m-%d')
     try:
-        query = "INSERT INTO Orders (phone, numModel, color, order_date, price) VALUES (%s, %s, %s, %s, %s)"
-        values = (phone, model,color, currentDate, price)
+        query = "INSERT INTO Orders (numModel, price, size, floor, name, phone, color,order_date) VALUES (%s, %s, %s, %s, %s,%s, %s, %s)"
+        values = (model, price ,size, floor, name, phone, color, currentDate)
         mycursor.execute(query, values)
         mydb.commit()
 
+    except cn.Error as e:
+        print(f'Error update order table: {e}')
 
+
+def updateShoesTableAfterPurch(model, color , size, floor, season):
+    
+    try:
+        quantityInStockQUERY = "SELECT quantity FROM shoes WHERE numModel = %s AND color = %s AND size = %s AND season = %s AND floor = %s" 
+        mycursor.execute(quantityInStockQUERY, (model, color,size, season, floor))
+        currentQuantity = mycursor.fetchone()
+        newQuantity = currentQuantity[0] - 1
+
+        query = "UPDATE shoes SET quantity = %s Where numModel = %s AND size = %s AND color = %s AND season = %s AND floor = %s"
+        values = (newQuantity, model, size, color, season, floor)
+        mycursor.execute(query, values)     
+        mydb.commit()
 
     except cn.Error as e:
-                print(f'Error update order table: {e}')
+        print(f'Error update order table: {e}')
+
+
