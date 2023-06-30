@@ -261,6 +261,11 @@ def purchase_window():
         if event in (sg.WIN_CLOSED, 'ביטול'):
             purchaseW.close()
             break
+
+        if checkIfmodelExist(model,size,color) == False:
+                sg.popup("הדגם לא נמצא במלאי", title="דגם חסר במלאי")
+                continue
+
         
         # Check if the size is correct
         if not size.isdigit() or not 36 <= int(size) <= 47:
@@ -271,7 +276,7 @@ def purchase_window():
             if not all(values.values()):
                 sg.popup("יש למלא את כל השדות", title="שדות חסרים")
                 continue
-            
+
             else:
                
                 if not re.match(r'^\d+(\.\d{1,2})?$', price) or not re.match(r'^\d+(\.\d{1,2})?$',model):
@@ -292,8 +297,16 @@ def purchase_window():
                 break
 
 
-
-
+def checkIfmodelExist(model, size, color):
+    query = "SELECT * FROM SHOES WHERE numModel = %s AND size = %s AND color = %s"
+    values = (model, size, color)
+    mycursor.execute(query, values)
+    result = mycursor.fetchone()
+    if result is not None:
+        return True
+    else:
+        return False
+    
 
 def addPurchaseSQL(model, price, size,floor, name, phone, color):
     
@@ -302,7 +315,15 @@ def addPurchaseSQL(model, price, size,floor, name, phone, color):
         query = "INSERT INTO Orders (numModel, price, size, floor, name, phone, color,order_date) VALUES (%s, %s, %s, %s, %s,%s, %s, %s)"
         values = (model, price ,size, floor, name, phone, color, currentDate)
         mycursor.execute(query, values)
-        mydb.commit()
+
+        
+        order_id = mycursor.lastrowid # Retrieve the last inserted order_id
+        query = "INSERT INTO Customers (phone, name, order_id) VALUES (%s, %s, %s)"
+        values = (phone, name, order_id)
+        mycursor.execute(query, values)
+        
+        
+        mydb.commit() # Commit the transaction
 
     except cn.Error as e:
         print(f'Error update order table: {e}')
