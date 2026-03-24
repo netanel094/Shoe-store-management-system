@@ -47,12 +47,12 @@ def Search_Window():
         [pysimplegui.Text("חיפוש נעליים", font=('Arial', 18, 'bold'), justification='center', expand_x=True)],
         [pysimplegui.HorizontalSeparator()],
         [pysimplegui.Text("?איזה זוג נעליים תרצה למצוא", font=('Arial', 13), justification='right', expand_x=True)],
-        [pysimplegui.Input(size=(12, 1), font=('Arial', 12)), pysimplegui.Text(':מספר דגם*', font=('Arial', 12))],
+        [pysimplegui.Input(size=(12, 1), font=('Arial', 12), key="MODEL"), pysimplegui.Text(':מספר דגם*', font=('Arial', 12))],
         [pysimplegui.Listbox([36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5, 41, 41.5,
                      42, 42.5, 43, 43.5, 44, 44.5, 45, 45.5, 46, 46.5, 47, 47.5, 48],
-                    size=(8, 7), font=('Arial', 11)), pysimplegui.Text(':מידה', font=('Arial', 12))],
+                    size=(8, 7), font=('Arial', 11), key="SIZE"), pysimplegui.Text(':מידה', font=('Arial', 12))],
         [pysimplegui.Listbox(["אדום", "שחור", "לבן", "ירוק", "אפור", "חום", "כחול", "צבעוני"],
-                    size=(10, 4), font=('Arial', 11)), pysimplegui.Text(':צבע', font=('Arial', 12))],
+                    size=(10, 4), font=('Arial', 11), key="COLOR"), pysimplegui.Text(':צבע', font=('Arial', 12))],
         [pysimplegui.HorizontalSeparator()],
         [pysimplegui.Button(button_text="אישור", size=(8, 2), pad=(10, 15), button_color="green", font=('Arial', 12)),
          pysimplegui.Button(button_text="ביטול", size=(8, 2), pad=(10, 15), button_color="red", font=('Arial', 12))]
@@ -65,7 +65,7 @@ def Search_Window():
         if event_Search in (pysimplegui.WIN_CLOSED, 'ביטול'):
             break
         # if the user did not input any model
-        elif values_Search[0] == "":
+        elif values_Search["MODEL"] == "":
             layout_error = [
                 [pysimplegui.Text("שגיאה! חובה להזין מספר דגם", size=(20, 2), text_color="black", font=('Arial', 14))],
                 [pysimplegui.Button(button_text="אישור", size=(5, 1), pad=(10, 20), button_color="grey")]]
@@ -76,7 +76,7 @@ def Search_Window():
                     break
             ErrorWindow.close()
         elif event_Search == "אישור":
-            search_sql(values_Search[0], values_Search[1], values_Search[2])
+            search_sql(values_Search["MODEL"], values_Search["SIZE"], values_Search["COLOR"])
     SearchWindow.close()
 
 def Add_Window():
